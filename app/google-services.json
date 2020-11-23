@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "647530888346",
+    "firebase_url": "https://catalyst-f9890.firebaseio.com",
+    "project_id": "catalyst-f9890",
+    "storage_bucket": "catalyst-f9890.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:647530888346:android:0f46f6353ab0ee6ded3323",
+        "android_client_info": {
+          "package_name": "com.example.catalyst"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "647530888346-0dljl2f99kfg1cv8rr7t0jfej4inso8c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxbyS0-PztwY3WSiM7Ci1-lER7iunTkRw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "647530888346-0dljl2f99kfg1cv8rr7t0jfej4inso8c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
