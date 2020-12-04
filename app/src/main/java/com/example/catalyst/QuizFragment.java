@@ -6,6 +6,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 
 import android.os.CountDownTimer;
 import android.util.Log;
@@ -21,18 +23,27 @@ import com.example.catalyst.QuizFragmentArgs;
 import com.example.catalyst.R;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 
 public class QuizFragment extends Fragment implements View.OnClickListener {
 
     private static final String TAG = "QUIZ_FRAGMENT_LOG";
-    private FirebaseFirestore firebaseFirestore;
 
+    private NavController navController;
+
+    private FirebaseFirestore firebaseFirestore;
+    private FirebaseAuth firebaseAuth;
+
+    private String currentUserId;
+
+    private String quizName;
     private String quizId;
 
     //UI Elements
@@ -56,6 +67,10 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     private boolean canAnswer = false;
     private int currentQuestion = 0;
 
+    private int correctAnswers = 0;
+    private int wrongAnswers = 0;
+    private int notAnswered = 0;
+
     public QuizFragment() {
         // Required empty public constructor
     }
@@ -70,6 +85,17 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        navController = Navigation.findNavController(view);
+
+        firebaseAuth = firebaseAuth.getInstance();
+        // Get User ID
+        if(firebaseAuth.getCurrentUser() != null) {
+            currentUserId = firebaseAuth.getCurrentUser().getUid();
+        }
+        else {
+            // Go back to home page
+        }
 
         firebaseFirestore = FirebaseFirestore.getInstance();
 
@@ -86,6 +112,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
         questionNumber = view.findViewById(R.id.quiz_question_number);
 
         quizId = QuizFragmentArgs.fromBundle(getArguments()).getQuizId();
+        quizName = QuizFragmentArgs.fromBundle(getArguments()).getQuizName();
         totalQuestionsToAnswer = QuizFragmentArgs.fromBundle(getArguments()).getTotalQuestions();
 
         //Query Firestore Data
@@ -94,7 +121,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
                 .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if(task.isSuccessful()){
+                if (task.isSuccessful()) {
                     allQuestionsList = task.getResult().toObjects(QuestionModel.class);
                     pickQuestions();
                     loadUI();
@@ -108,11 +135,13 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
         optionOneBtn.setOnClickListener(this);
         optionTwoBtn.setOnClickListener(this);
         optionThreeBtn.setOnClickListener(this);
+
+        nextBtn.setOnClickListener(this);
     }
 
     private void loadUI() {
         //Quiz Data Loaded, Load the UI
-        quizTitle.setText("Quiz Data Loaded");
+        quizTitle.setText(quizName);
         questionText.setText("Load First Question");
 
         //Enable Options
@@ -127,12 +156,12 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
         questionNumber.setText(questNum + "");
 
         //Load Question Text
-        questionText.setText(questionsToAnswer.get(questNum).getQuestion());
+        questionText.setText(questionsToAnswer.get(questNum - 1).getQuestion());
 
         //Load Options
-        optionOneBtn.setText(questionsToAnswer.get(questNum).getOption_a());
-        optionTwoBtn.setText(questionsToAnswer.get(questNum).getOption_b());
-        optionThreeBtn.setText(questionsToAnswer.get(questNum).getOption_c());
+        optionOneBtn.setText(questionsToAnswer.get(questNum - 1).getOption_a());
+        optionTwoBtn.setText(questionsToAnswer.get(questNum - 1).getOption_b());
+        optionThreeBtn.setText(questionsToAnswer.get(questNum - 1).getOption_c());
 
         //Question Loaded, Set an Answer
         canAnswer = true;
@@ -145,21 +174,21 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     private void startTimer(int questionNumber) {
 
         //Set Timer Text
-        final Long timeToAnswer = questionsToAnswer.get(questionNumber).getTimer();
+        final Long timeToAnswer = questionsToAnswer.get(questionNumber - 1).getTimer();
         questionTime.setText(timeToAnswer.toString());
 
         //Show Timer ProgressBar
         questionProgress.setVisibility(View.VISIBLE);
 
         //Start CountDown
-        countDownTimer = new CountDownTimer(timeToAnswer*1000, 10) {
+        countDownTimer = new CountDownTimer(timeToAnswer * 1000, 10) {
             @Override
             public void onTick(long millisUntilFinished) {
                 //Update Time
-                questionTime.setText(millisUntilFinished/1000 + "");
+                questionTime.setText(millisUntilFinished / 1000 + "");
 
                 //Progress in percent
-                Long percent = millisUntilFinished/(timeToAnswer*10);
+                Long percent = millisUntilFinished / (timeToAnswer * 10);
                 questionProgress.setProgress(percent.intValue());
             }
 
@@ -167,6 +196,11 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
             public void onFinish() {
                 //Time Up, Cannot Answer Question Anymore
                 canAnswer = false;
+
+                questionFeedback.setText("Time Up!! Press Next to go the next question");
+                questionFeedback.setTextColor(getResources().getColor(R.color.colorPrimary, null));
+                notAnswered++;
+                showNextBtn();
             }
         };
 
@@ -191,7 +225,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     }
 
     private void pickQuestions() {
-        for(int i=0; i < totalQuestionsToAnswer; i++) {
+        for (int i = 0; i < totalQuestionsToAnswer; i++) {
             int randomNumber = getRandomInt(0, allQuestionsList.size());
             questionsToAnswer.add(allQuestionsList.get(randomNumber));
             allQuestionsList.remove(randomNumber);
@@ -200,36 +234,117 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     }
 
     private int getRandomInt(int min, int max) {
-        return ((int) (Math.random()*(max-min))) + min;
+        return ((int) (Math.random() * (max - min))) + min;
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.quiz_option_one:
-                answerSelected(optionOneBtn.getText());
+                verifyAnswer(optionOneBtn);
                 break;
             case R.id.quiz_option_two:
-                answerSelected(optionTwoBtn.getText());
+                verifyAnswer(optionTwoBtn);
                 break;
             case R.id.quiz_option_three:
-                answerSelected(optionThreeBtn.getText());
+                verifyAnswer(optionThreeBtn);
                 break;
+            case R.id.quiz_next_btn:
+                if (currentQuestion == totalQuestionsToAnswer) {
+                    // no more questions to load submit results
+                    submitResults();
+                }
+                else {
+                    currentQuestion++;
+                    loadQuestion(currentQuestion);
+                    resetOptions();
+                    break;
+                }
         }
     }
 
-    private void answerSelected(CharSequence selectedAnswer) {
+    private void submitResults() {
+        HashMap<String, Object> resultMap = new HashMap<>();
+        resultMap.put("Correct", correctAnswers);
+        resultMap.put("Wrong", wrongAnswers);
+        resultMap.put("Missed", notAnswered);
+
+
+        firebaseFirestore.collection("QuizList").document(quizId)
+                .collection("Results").document(currentUserId).set(resultMap)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            // Go to result page
+                            QuizFragmentDirections.ActionQuizFragmentToResultFragment action = QuizFragmentDirections.actionQuizFragmentToResultFragment();
+                            action.setQuizId(quizId);
+                            navController.navigate(action);
+                        }
+                        else {
+                            // show an error
+                            quizTitle.setText(task.getException().getMessage());
+                        }
+                    }
+                });
+    }
+
+    private void resetOptions() {
+        optionOneBtn.setBackground(getResources().getDrawable(R.drawable.outline_light_btn_bg, null));
+        optionTwoBtn.setBackground(getResources().getDrawable(R.drawable.outline_light_btn_bg, null));
+        optionThreeBtn.setBackground(getResources().getDrawable(R.drawable.outline_light_btn_bg, null));
+
+        optionOneBtn.setTextColor(getResources().getColor(R.color.colorLightText, null));
+        optionTwoBtn.setTextColor(getResources().getColor(R.color.colorLightText, null));
+        optionThreeBtn.setTextColor(getResources().getColor(R.color.colorLightText, null));
+
+        questionFeedback.setVisibility(View.INVISIBLE);
+        nextBtn.setVisibility(View.INVISIBLE);
+        nextBtn.setEnabled(false);
+    }
+
+    private void verifyAnswer(Button selectedAnswerBtn) {
+
         //Check Answer
-        if(canAnswer){
-            if(questionsToAnswer.get(currentQuestion).getAnswer().equals(selectedAnswer)){
+        if (canAnswer) {
+
+            // Set answer button text to black
+            selectedAnswerBtn.setTextColor(getResources().getColor(R.color.colorDark, null));
+
+            if (questionsToAnswer.get(currentQuestion - 1).getAnswer().equals(selectedAnswerBtn.getText())) {
                 //Correct Answer
-                Log.d(TAG, "Correct Answer");
+                correctAnswers++;
+                selectedAnswerBtn.setBackground(getResources().getDrawable(R.drawable.correct_answer_btn_bg, null));
+
+                // Set feedback text
+                questionFeedback.setText("Correct Answer");
+                questionFeedback.setTextColor(getResources().getColor(R.color.colorPrimary, null));
             } else {
                 //Wrong Answer
-                Log.d(TAG, "Wrong Answer");
+                wrongAnswers++;
+                selectedAnswerBtn.setBackground(getResources().getDrawable(R.drawable.wrong_answer_btn_bg, null));
+
+                // Set feedback text
+                questionFeedback.setText("Wrong Answer \n Correct Answer: " + questionsToAnswer.get(currentQuestion - 1).getAnswer());
+                questionFeedback.setTextColor(getResources().getColor(R.color.colorAccent, null));
             }
-            //Set Can answer to false
+            //Set Can answer to false, so that user cannot submit again
             canAnswer = false;
+
+            // stop the timer
+            countDownTimer.cancel();
+
+            // show next button
+            showNextBtn();
         }
+    }
+
+    private void showNextBtn() {
+        if (currentQuestion == totalQuestionsToAnswer) {
+            nextBtn.setText("Submit Results");
+        }
+        questionFeedback.setVisibility(View.VISIBLE);
+        nextBtn.setVisibility(View.VISIBLE);
+        nextBtn.setEnabled(true);
     }
 }
