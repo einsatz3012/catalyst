@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,7 +50,8 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
     private TextView detailsQuestions;
 
     private Button detailsStartBtn;
-
+    private String quizId;
+    private long totalQuestions = 0;
 
     public DetailsFragment() {
         // Required empty public constructor
@@ -140,6 +142,12 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
                 detailsDesc.setText(quizListModels.get(position).getDesc());
                 detailsDiff.setText(quizListModels.get(position).getLevel());
                 detailsQuestions.setText(quizListModels.get(position).getQuestions() + "");
+
+                // assign value to quizId variable
+                quizId = quizListModels.get(position).getQuiz_id();
+                totalQuestions = quizListModels.get(position).getQuestions();
+                Log.d("Total Questions : ", "################################################" + totalQuestions);
+
             }
         });
     }
@@ -154,7 +162,8 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
         switch(v.getId()) {
             case R.id.details_start_btn:
                 DetailsFragmentDirections.ActionDetailsFragmentToQuizFragment action =  DetailsFragmentDirections.actionDetailsFragmentToQuizFragment();
-                action.setPosition(position);
+                action.setTotalQuestions(totalQuestions);
+                action.setQuizid(quizId);
                 navController.navigate(action);
                 break;
         }
