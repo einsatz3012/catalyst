@@ -1,30 +1,27 @@
 package com.example.catalyst;
 
-// this file help us observe live data and update list fragment and
-// also details fragment
-
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.util.List;
 
-public class QuizListViewModel extends ViewModel implements FirebaseRepository.OnFirestoreTaskComplete {
+public class QuizListViewModel extends ViewModel implements com.example.catalyst.FirebaseRepository.OnFirestoreTaskComplete {
 
-    private MutableLiveData<List<QuizListModel>> quizListModelData = new MutableLiveData<List<QuizListModel>>();
+    private MutableLiveData<List<com.example.catalyst.QuizListModel>> quizListModelData = new MutableLiveData<>();
 
-    public LiveData<List<QuizListModel>> getQuizListModelData() {
+    public LiveData<List<com.example.catalyst.QuizListModel>> getQuizListModelData() {
         return quizListModelData;
     }
 
-    private FirebaseRepository firebaseRepository = new FirebaseRepository(this);
+    private com.example.catalyst.FirebaseRepository firebaseRepository = new com.example.catalyst.FirebaseRepository(this);
 
     public QuizListViewModel() {
         firebaseRepository.getQuizData();
     }
 
     @Override
-    public void quizListDataAdded(List<QuizListModel> quizListModelsList) {
+    public void quizListDataAdded(List<com.example.catalyst.QuizListModel> quizListModelsList) {
         quizListModelData.setValue(quizListModelsList);
     }
 

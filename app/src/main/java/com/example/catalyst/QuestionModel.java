@@ -2,19 +2,16 @@ package com.example.catalyst;
 
 import com.google.firebase.firestore.DocumentId;
 
-public class QuestionsModel {
+public class QuestionModel {
 
     @DocumentId
     private String questionId;
     private String question, option_a, option_b, option_c, answer;
-    private long timer;
+    private Long timer;
 
-    // for firebase
-    public QuestionsModel() {
+    public QuestionModel() {}
 
-    }
-
-    public QuestionsModel(String questionId, String question, String option_a, String option_b, String option_c, String answer, long timer) {
+    public QuestionModel(String questionId, String question, String option_a, String option_b, String option_c, String answer, Long timer) {
         this.questionId = questionId;
         this.question = question;
         this.option_a = option_a;
@@ -70,5 +67,13 @@ public class QuestionsModel {
 
     public void setAnswer(String answer) {
         this.answer = answer;
+    }
+
+    public Long getTimer() {
+        return timer;
+    }
+
+    public void setTimer(Long timer) {
+        this.timer = timer;
     }
 }

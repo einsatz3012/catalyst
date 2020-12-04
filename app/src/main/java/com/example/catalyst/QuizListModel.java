@@ -4,13 +4,11 @@ import com.google.firebase.firestore.DocumentId;
 
 public class QuizListModel {
 
-    // firebase will attach document id to strings
     @DocumentId
     private String quiz_id;
     private String name, desc, image, level, visibility;
-    private  long questions;
+    private long questions;
 
-    // for firebase
     public QuizListModel() {}
 
     public QuizListModel(String quiz_id, String name, String desc, String image, String level, String visibility, long questions) {
@@ -78,6 +76,4 @@ public class QuizListModel {
     public void setQuestions(long questions) {
         this.questions = questions;
     }
-
-
 }

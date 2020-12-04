@@ -1,5 +1,6 @@
 package com.example.catalyst;
 
+
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -15,24 +16,18 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.example.catalyst.R;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthActionCodeException;
 import com.google.firebase.auth.FirebaseUser;
+
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link StartFragment#newInstance} factory method to
- * create an instance of this fragment.
  */
 public class StartFragment extends Fragment {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
 
     private ProgressBar startProgress;
     private TextView startFeedbackText;
@@ -42,40 +37,10 @@ public class StartFragment extends Fragment {
 
     private NavController navController;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
     public StartFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment StartFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static StartFragment newInstance(String param1, String param2) {
-        StartFragment fragment = new StartFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -88,7 +53,7 @@ public class StartFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        firebaseAuth = firebaseAuth.getInstance();
+        firebaseAuth = FirebaseAuth.getInstance();
 
         navController = Navigation.findNavController(view);
 
@@ -98,32 +63,29 @@ public class StartFragment extends Fragment {
         startFeedbackText.setText("Checking User Account...");
     }
 
-    // check if the user is logged in
     @Override
     public void onStart() {
         super.onStart();
 
         FirebaseUser currentUser = firebaseAuth.getCurrentUser();
-        if (currentUser == null) {
+        if(currentUser == null){
 
-            startFeedbackText.setText("Creating an Account...");
+            startFeedbackText.setText("Creating Account...");
 
-            // create a new account
+            //Create a new account
             firebaseAuth.signInAnonymously().addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                 @Override
                 public void onComplete(@NonNull Task<AuthResult> task) {
-                    if (task.isSuccessful()) {
+                    if(task.isSuccessful()){
                         startFeedbackText.setText("Account Created...");
                         navController.navigate(R.id.action_startFragment_to_listFragment);
-                    }
-                    else {
-                        Log.d(START_TAG, "Start Log: " + task.getException());
+                    } else {
+                        Log.d(START_TAG, "Start Log : " + task.getException().getMessage());
                     }
                 }
             });
-        }
-        else {
-            // navigate to HomePage
+        } else {
+            //Navigate to Homepage
             startFeedbackText.setText("Logged in...");
             navController.navigate(R.id.action_startFragment_to_listFragment);
         }

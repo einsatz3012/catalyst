@@ -7,12 +7,13 @@
     android:layout_margin="16dp"
     android:background="@drawable/dark_bg">
 
+
     <androidx.cardview.widget.CardView
         android:id="@+id/quiz_card"
+        app:cardCornerRadius="6dp"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:cardBackgroundColor="@color/colorDark"
-        app:cardCornerRadius="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">

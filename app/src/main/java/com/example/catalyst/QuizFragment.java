@@ -1,17 +1,24 @@
 package com.example.catalyst;
 
+
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.example.catalyst.QuizFragmentArgs;
+import com.example.catalyst.R;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -20,63 +27,37 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link QuizFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class QuizFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+public class QuizFragment extends Fragment implements View.OnClickListener {
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    private TextView quizTitle;
-
+    private static final String TAG = "QUIZ_FRAGMENT_LOG";
     private FirebaseFirestore firebaseFirestore;
+
     private String quizId;
 
-    // firebase data
-    // to hold all the questions
-    private List<QuestionsModel> allQuestionsList = new ArrayList<>();
-    private long totalQuestionsAnswers = 10;
-    // to hold picked questions
-    private List<QuestionsModel> questionsToAnswer = new ArrayList<>();
+    //UI Elements
+    private TextView quizTitle;
+    private Button optionOneBtn;
+    private Button optionTwoBtn;
+    private Button optionThreeBtn;
+    private Button nextBtn;
+    private ImageButton closeBtn;
+    private TextView questionFeedback;
+    private TextView questionText;
+    private TextView questionTime;
+    private ProgressBar questionProgress;
+    private TextView questionNumber;
+
+    private List<QuestionModel> allQuestionsList = new ArrayList<>();
+    private List<QuestionModel> questionsToAnswer = new ArrayList<>();
+    private Long totalQuestionsToAnswer = 0L;
+    private CountDownTimer countDownTimer;
+
+    private boolean canAnswer = false;
+    private int currentQuestion = 0;
 
     public QuizFragment() {
         // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment QuizFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static QuizFragment newInstance(String param1, String param2) {
-        QuizFragment fragment = new QuizFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
     }
 
     @Override
@@ -90,47 +71,165 @@ public class QuizFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // initialize
         firebaseFirestore = FirebaseFirestore.getInstance();
 
+        //UI Initialize
         quizTitle = view.findViewById(R.id.quiz_title);
+        optionOneBtn = view.findViewById(R.id.quiz_option_one);
+        optionTwoBtn = view.findViewById(R.id.quiz_option_two);
+        optionThreeBtn = view.findViewById(R.id.quiz_option_three);
+        nextBtn = view.findViewById(R.id.quiz_next_btn);
+        questionFeedback = view.findViewById(R.id.quiz_question_feedback);
+        questionText = view.findViewById(R.id.quiz_question);
+        questionTime = view.findViewById(R.id.quiz_question_time);
+        questionProgress = view.findViewById(R.id.quiz_question_progress);
+        questionNumber = view.findViewById(R.id.quiz_question_number);
 
-        // get quizId
-        quizId = QuizFragmentArgs.fromBundle(getArguments()).getQuizid();
-        totalQuestionsAnswers = QuizFragmentArgs.fromBundle(getArguments()).getTotalQuestions();
+        quizId = QuizFragmentArgs.fromBundle(getArguments()).getQuizId();
+        totalQuestionsToAnswer = QuizFragmentArgs.fromBundle(getArguments()).getTotalQuestions();
 
-        // get all questions from the quiz
-        firebaseFirestore.collection("QuizList").document(quizId).collection("Questions")
+        //Query Firestore Data
+        firebaseFirestore.collection("QuizList")
+                .document(quizId).collection("Questions")
                 .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    allQuestionsList = task.getResult().toObjects(QuestionsModel.class);
-//                    Log.d("list", "###########################################################################################################################################" + allQuestionsList.get(0).getQuestion());
-
-                    // pick given no of questions from list of questions
+                if(task.isSuccessful()){
+                    allQuestionsList = task.getResult().toObjects(QuestionModel.class);
                     pickQuestions();
+                    loadUI();
                 } else {
-                    // Error getting Questions
-                    quizTitle.setText("Error Loading Data");
+                    quizTitle.setText("Error : " + task.getException().getMessage());
                 }
             }
         });
 
+        //Set Button Click Listeners
+        optionOneBtn.setOnClickListener(this);
+        optionTwoBtn.setOnClickListener(this);
+        optionThreeBtn.setOnClickListener(this);
     }
 
-    public void pickQuestions() {
-        for (int i = 0; i < totalQuestionsAnswers; i++){
-            int randomNumber = getRandomInteger(allQuestionsList.size(), 0);
+    private void loadUI() {
+        //Quiz Data Loaded, Load the UI
+        quizTitle.setText("Quiz Data Loaded");
+        questionText.setText("Load First Question");
+
+        //Enable Options
+        enableOptions();
+
+        //Load First Question
+        loadQuestion(1);
+    }
+
+    private void loadQuestion(int questNum) {
+        //Set Question Number
+        questionNumber.setText(questNum + "");
+
+        //Load Question Text
+        questionText.setText(questionsToAnswer.get(questNum).getQuestion());
+
+        //Load Options
+        optionOneBtn.setText(questionsToAnswer.get(questNum).getOption_a());
+        optionTwoBtn.setText(questionsToAnswer.get(questNum).getOption_b());
+        optionThreeBtn.setText(questionsToAnswer.get(questNum).getOption_c());
+
+        //Question Loaded, Set an Answer
+        canAnswer = true;
+        currentQuestion = questNum;
+
+        //Start Question Timer
+        startTimer(questNum);
+    }
+
+    private void startTimer(int questionNumber) {
+
+        //Set Timer Text
+        final Long timeToAnswer = questionsToAnswer.get(questionNumber).getTimer();
+        questionTime.setText(timeToAnswer.toString());
+
+        //Show Timer ProgressBar
+        questionProgress.setVisibility(View.VISIBLE);
+
+        //Start CountDown
+        countDownTimer = new CountDownTimer(timeToAnswer*1000, 10) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                //Update Time
+                questionTime.setText(millisUntilFinished/1000 + "");
+
+                //Progress in percent
+                Long percent = millisUntilFinished/(timeToAnswer*10);
+                questionProgress.setProgress(percent.intValue());
+            }
+
+            @Override
+            public void onFinish() {
+                //Time Up, Cannot Answer Question Anymore
+                canAnswer = false;
+            }
+        };
+
+        countDownTimer.start();
+    }
+
+    private void enableOptions() {
+        //Show All Option Buttons
+        optionOneBtn.setVisibility(View.VISIBLE);
+        optionTwoBtn.setVisibility(View.VISIBLE);
+        optionThreeBtn.setVisibility(View.VISIBLE);
+
+        //Enable Option Buttons
+        optionOneBtn.setEnabled(true);
+        optionTwoBtn.setEnabled(true);
+        optionThreeBtn.setEnabled(true);
+
+        //Hide Feedback and next Button
+        questionFeedback.setVisibility(View.INVISIBLE);
+        nextBtn.setVisibility(View.INVISIBLE);
+        nextBtn.setEnabled(false);
+    }
+
+    private void pickQuestions() {
+        for(int i=0; i < totalQuestionsToAnswer; i++) {
+            int randomNumber = getRandomInt(0, allQuestionsList.size());
             questionsToAnswer.add(allQuestionsList.get(randomNumber));
             allQuestionsList.remove(randomNumber);
-
-            Log.d("picked questions : ", "################################################" + questionsToAnswer.get(i).getQuestion());
-
+            Log.d("QUESTIONS LOG", "Question " + i + " : " + questionsToAnswer.get(i).getQuestion());
         }
     }
 
-    public static int getRandomInteger(int maximum, int minimum) {
-        return ((int) (Math.random() * (maximum - minimum))) + minimum;
+    private int getRandomInt(int min, int max) {
+        return ((int) (Math.random()*(max-min))) + min;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.quiz_option_one:
+                answerSelected(optionOneBtn.getText());
+                break;
+            case R.id.quiz_option_two:
+                answerSelected(optionTwoBtn.getText());
+                break;
+            case R.id.quiz_option_three:
+                answerSelected(optionThreeBtn.getText());
+                break;
+        }
+    }
+
+    private void answerSelected(CharSequence selectedAnswer) {
+        //Check Answer
+        if(canAnswer){
+            if(questionsToAnswer.get(currentQuestion).getAnswer().equals(selectedAnswer)){
+                //Correct Answer
+                Log.d(TAG, "Correct Answer");
+            } else {
+                //Wrong Answer
+                Log.d(TAG, "Wrong Answer");
+            }
+            //Set Can answer to false
+            canAnswer = false;
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.catalyst;
 
+
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -19,30 +20,23 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ProgressBar;
 
+import com.example.catalyst.ListFragmentDirections;
+import com.example.catalyst.QuizListAdapter;
+import com.example.catalyst.QuizListModel;
+import com.example.catalyst.QuizListViewModel;
+import com.example.catalyst.R;
+
 import java.util.List;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ListFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class ListFragment extends Fragment implements QuizListAdapter.OnQuizListItemCLicked {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+public class ListFragment extends Fragment implements com.example.catalyst.QuizListAdapter.OnQuizListItemClicked {
 
     private NavController navController;
 
     private RecyclerView listView;
-    private QuizListViewModel quizListViewModel;
+    private com.example.catalyst.QuizListViewModel quizListViewModel;
 
-    private QuizListAdapter adapter;
+    private com.example.catalyst.QuizListAdapter adapter;
     private ProgressBar listProgress;
 
     private Animation fadeInAnim;
@@ -50,33 +44,6 @@ public class ListFragment extends Fragment implements QuizListAdapter.OnQuizList
 
     public ListFragment() {
         // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment ListFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static ListFragment newInstance(String param1, String param2) {
-        ListFragment fragment = new ListFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
     }
 
     @Override
@@ -94,7 +61,6 @@ public class ListFragment extends Fragment implements QuizListAdapter.OnQuizList
 
         listView = view.findViewById(R.id.list_view);
         listProgress = view.findViewById(R.id.list_progress);
-
         adapter = new QuizListAdapter(this);
 
         listView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -103,28 +69,21 @@ public class ListFragment extends Fragment implements QuizListAdapter.OnQuizList
 
         fadeInAnim = AnimationUtils.loadAnimation(getContext(), R.anim.fade_in);
         fadeOutAnim = AnimationUtils.loadAnimation(getContext(), R.anim.fade_out);
-
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        // viewmodel class iniialized and once it initialized getquizdata method from firebaserepository is called
         quizListViewModel = new ViewModelProvider(getActivity()).get(QuizListViewModel.class);
         quizListViewModel.getQuizListModelData().observe(getViewLifecycleOwner(), new Observer<List<QuizListModel>>() {
-            // observer is like listener when data changes it notifies and send us new data
-            // which is quizListModel here which contains the data
             @Override
             public void onChanged(List<QuizListModel> quizListModels) {
-                // load recycler view
+                //Load RecyclerView
                 listView.startAnimation(fadeInAnim);
                 listProgress.startAnimation(fadeOutAnim);
 
-                // to inflate the adapter
                 adapter.setQuizListModels(quizListModels);
-
-                // to notify the adapter the data has changed
                 adapter.notifyDataSetChanged();
             }
         });

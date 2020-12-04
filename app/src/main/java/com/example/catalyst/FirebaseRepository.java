@@ -1,5 +1,3 @@
-// To query data from firebase firestore adns et it to interface
-
 package com.example.catalyst;
 
 import androidx.annotation.NonNull;
@@ -27,8 +25,8 @@ public class FirebaseRepository {
         quizRef.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    onFirestoreTaskComplete.quizListDataAdded(task.getResult().toObjects(QuizListModel.class));
+                if(task.isSuccessful()){
+                    onFirestoreTaskComplete.quizListDataAdded(task.getResult().toObjects(com.example.catalyst.QuizListModel.class));
                 } else {
                     onFirestoreTaskComplete.onError(task.getException());
                 }
@@ -37,8 +35,8 @@ public class FirebaseRepository {
     }
 
     public interface OnFirestoreTaskComplete {
-        void quizListDataAdded(List<QuizListModel> quizListModelsList);
-
+        void quizListDataAdded(List<com.example.catalyst.QuizListModel> quizListModelsList);
         void onError(Exception e);
     }
+
 }
