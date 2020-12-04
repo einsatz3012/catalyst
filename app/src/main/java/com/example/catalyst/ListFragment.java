@@ -128,6 +128,7 @@ public class ListFragment extends Fragment implements QuizListAdapter.OnQuizList
                 adapter.notifyDataSetChanged();
             }
         });
+
     }
 
     @Override
