@@ -4,9 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ResultFragment"
     android:background="@color/colorPrimaryDark"
-    >
+    tools:context=".ResultFragment">
 
 
     <TextView
@@ -57,10 +56,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="64dp"
+        android:fontFamily="@font/work_sans"
         android:text="Correct Answers"
         android:textColor="@color/colorLightText"
         android:textSize="16sp"
-        android:fontFamily="@font/work_sans"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/results_progress" />
 
@@ -70,10 +69,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="32dp"
+        android:fontFamily="@font/work_sans"
         android:text="Wrong Answers"
         android:textColor="@color/colorLightText"
         android:textSize="16sp"
-        android:fontFamily="@font/work_sans"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/results_correct" />
 
@@ -83,22 +82,48 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="32dp"
+        android:fontFamily="@font/work_sans"
         android:text="Questions Missed"
         android:textColor="@color/colorLightText"
         android:textSize="16sp"
-        android:fontFamily="@font/work_sans"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/results_wrong" />
+
+    <TextView
+        android:id="@+id/average_score"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        android:fontFamily="@font/work_sans"
+        android:text="Average Score"
+        android:textColor="@color/colorLightText"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/results_missed" />
+
+    <TextView
+        android:id="@+id/average_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        android:fontFamily="@font/work_sans"
+        android:text="Average Time"
+        android:textColor="@color/colorLightText"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/average_score" />
 
     <TextView
         android:id="@+id/results_correct_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="32dp"
+        android:fontFamily="@font/work_sans"
         android:text="NA"
         android:textColor="@color/colorLightText"
         android:textSize="16sp"
-        android:fontFamily="@font/work_sans"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/results_correct" />
 
@@ -108,10 +133,10 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:layout_marginEnd="32dp"
+        android:fontFamily="@font/work_sans"
         android:text="NA"
         android:textColor="@color/colorLightText"
         android:textSize="16sp"
-        android:fontFamily="@font/work_sans"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/results_correct_text" />
 
@@ -121,12 +146,38 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:layout_marginEnd="32dp"
+        android:fontFamily="@font/work_sans"
         android:text="NA"
         android:textColor="@color/colorLightText"
         android:textSize="16sp"
-        android:fontFamily="@font/work_sans"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/results_wrong_text" />
+
+    <TextView
+        android:id="@+id/average_score_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="32dp"
+        android:fontFamily="@font/work_sans"
+        android:text="NA"
+        android:textColor="@color/colorLightText"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/results_missed_text" />
+
+    <TextView
+        android:id="@+id/average_time_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="32dp"
+        android:fontFamily="@font/work_sans"
+        android:text="NA"
+        android:textColor="@color/colorLightText"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/average_score_text" />
 
     <Button
         android:id="@+id/results_home_btn"

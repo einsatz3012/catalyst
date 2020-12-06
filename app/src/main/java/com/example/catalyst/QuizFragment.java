@@ -1,6 +1,7 @@
 package com.example.catalyst;
 
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -24,8 +25,10 @@ import com.example.catalyst.R;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,6 +74,14 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     private int wrongAnswers = 0;
     private int notAnswered = 0;
 
+//    ......................
+    Long timeToAnswer;
+
+    // for average time;
+    private String currentTime;
+    private int totalTimeeSpent = 0;
+    private float averageTime = 0;
+
     public QuizFragment() {
         // Required empty public constructor
     }
@@ -100,6 +111,9 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
         firebaseFirestore = FirebaseFirestore.getInstance();
 
         //UI Initialize
+
+        closeBtn = view.findViewById(R.id.quiz_close_btn);
+
         quizTitle = view.findViewById(R.id.quiz_title);
         optionOneBtn = view.findViewById(R.id.quiz_option_one);
         optionTwoBtn = view.findViewById(R.id.quiz_option_two);
@@ -132,6 +146,9 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
         });
 
         //Set Button Click Listeners
+
+        closeBtn.setOnClickListener(this);
+
         optionOneBtn.setOnClickListener(this);
         optionTwoBtn.setOnClickListener(this);
         optionThreeBtn.setOnClickListener(this);
@@ -174,7 +191,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     private void startTimer(int questionNumber) {
 
         //Set Timer Text
-        final Long timeToAnswer = questionsToAnswer.get(questionNumber - 1).getTimer();
+        timeToAnswer = questionsToAnswer.get(questionNumber - 1).getTimer();
         questionTime.setText(timeToAnswer.toString());
 
         //Show Timer ProgressBar
@@ -240,6 +257,8 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
+            case R.id.quiz_close_btn:
+                navController.navigate(R.id.action_quizFragment_to_listFragment2);
             case R.id.quiz_option_one:
                 verifyAnswer(optionOneBtn);
                 break;
@@ -264,14 +283,16 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
     }
 
     private void submitResults() {
+
         HashMap<String, Object> resultMap = new HashMap<>();
         resultMap.put("Correct", correctAnswers);
         resultMap.put("Wrong", wrongAnswers);
         resultMap.put("Missed", notAnswered);
 
+        averageTime = (float) totalTimeeSpent / (float) totalQuestionsToAnswer;
 
         firebaseFirestore.collection("QuizList").document(quizId)
-                .collection("Results").document(currentUserId).set(resultMap)
+                .collection("Results").document(currentUserId).set(resultMap, SetOptions.merge())
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
@@ -279,6 +300,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
                             // Go to result page
                             QuizFragmentDirections.ActionQuizFragmentToResultFragment action = QuizFragmentDirections.actionQuizFragmentToResultFragment();
                             action.setQuizId(quizId);
+                            action.setAverageTime(averageTime);
                             navController.navigate(action);
                         }
                         else {
@@ -332,7 +354,12 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
             canAnswer = false;
 
             // stop the timer
+            currentTime = questionTime.getText().toString();
+
+            totalTimeeSpent += (int) (timeToAnswer - Integer.parseInt(currentTime));
+            Log.v("Logger", "total time" + totalTimeeSpent);
             countDownTimer.cancel();
+
 
             // show next button
             showNextBtn();
@@ -341,7 +368,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
 
     private void showNextBtn() {
         if (currentQuestion == totalQuestionsToAnswer) {
-            nextBtn.setText("Submit Results");
+            nextBtn.setText("Submit Result");
         }
         questionFeedback.setVisibility(View.VISIBLE);
         nextBtn.setVisibility(View.VISIBLE);
