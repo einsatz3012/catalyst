@@ -13,6 +13,7 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,11 +26,22 @@ import com.example.catalyst.QuizListAdapter;
 import com.example.catalyst.QuizListModel;
 import com.example.catalyst.QuizListViewModel;
 import com.example.catalyst.R;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.List;
 
 
 public class ListFragment extends Fragment implements com.example.catalyst.QuizListAdapter.OnQuizListItemClicked {
+
+    private FirebaseFirestore firebaseFirestore;
+
+    private FirebaseAuth firebaseAuth;
 
     private NavController navController;
 
@@ -41,6 +53,14 @@ public class ListFragment extends Fragment implements com.example.catalyst.QuizL
 
     private Animation fadeInAnim;
     private Animation fadeOutAnim;
+
+    // for worst and best
+    private float fetchedTotal;
+    private float fetchedAttempts;
+    private  String bestQuizName = "NA";
+    private double bestQuizScore = -1;
+    private String worstQuizName = "NA";
+    private double worstQuizScore = 101;
 
     public ListFragment() {
         // Required empty public constructor
@@ -88,12 +108,116 @@ public class ListFragment extends Fragment implements com.example.catalyst.QuizL
             }
         });
 
+
+
+        //checking for leaderboard
+
+
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        firebaseAuth = firebaseAuth.getInstance();
+
+        firestore.collection("QuizList").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+
+
+
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if (task.isSuccessful()) {
+                    for (QueryDocumentSnapshot documentSnapshots : task.getResult()) {
+
+//                        Log.v("tag", ":" + documentSnapshots.getId()); // gives the id of quizes
+
+                        firestore.collection("QuizList")
+                                .document(documentSnapshots.getId()).collection("Results").get()
+                                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                        if (task.isSuccessful()) {
+                                            boolean isResultsExist = task.getResult().isEmpty();
+
+                                            if (!isResultsExist) {
+
+                                                Log.v("leader", "Resul collection exists: " + documentSnapshots.get("name"));
+
+                                                firestore.collection("QuizList")
+                                                        .document(documentSnapshots.getId()).collection("Results")
+                                                        .document(firebaseAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                                    @Override
+                                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+
+                                                        DocumentSnapshot result = task.getResult();
+
+                                                        if (task.isSuccessful()) {
+                                                            boolean isUidExits = task.getResult().exists();
+
+                                                            if (isUidExits) {
+                                                                Log.v("leader", "uid document exists: " + documentSnapshots.get("name"));
+
+                                                                fetchedTotal = (float) result.getLong("totalScore");
+                                                                fetchedAttempts = (float) result.getLong("attempts");
+
+                                                                float average = fetchedTotal / fetchedAttempts;
+                                                                double roundOff = Math.round(average * 100.0) / 100.0;
+                                                                Log.v("leader", "fetched avg" + roundOff + "%");
+                                                                Log.v("leader", ": " + (roundOff > bestQuizScore) + 's');
+
+                                                                if(roundOff > bestQuizScore) {
+                                                                    Log.v("leader", "greater if");
+                                                                    bestQuizScore = roundOff;
+                                                                    bestQuizName = documentSnapshots.get("name").toString();
+
+                                                                    Log.v("results", "best score: " + bestQuizScore + "s........name" + bestQuizName);
+                                                                    Log.v("results", "worst score: " + worstQuizScore + "s........name" + worstQuizName);
+                                                                }
+                                                                if(roundOff < worstQuizScore) {
+                                                                    Log.v("leader", "smaller if");
+                                                                    worstQuizScore = roundOff;
+                                                                    worstQuizName = documentSnapshots.get("name").toString();
+
+                                                                    Log.v("results", "best score: " + bestQuizScore + "s........name" + bestQuizName);
+                                                                    Log.v("results", "worst score: " + worstQuizScore + "s........name" + worstQuizName);
+                                                                }
+
+
+                                                            } else {
+                                                                Log.v("leader", "uid doc doesn't exists: " + documentSnapshots.get("name"));
+                                                            }
+
+                                                        } else {
+                                                            Log.v("leader", "Task UID Unsucessfull ");
+                                                        }
+
+                                                    }
+                                                });
+                                            } else {
+                                                Log.v("leader", "Resul collection doesn't exists: " + documentSnapshots.get("name"));
+                                            }
+                                        } else {
+                                            Log.v("leader", "Task Unsuccessful");
+                                        }
+                                    }
+                                });
+
+                    }
+                    Log.v("results", "best outer score: " + bestQuizScore + "s........name" + bestQuizName);
+                    Log.v("results", "worst outer score: " + worstQuizScore + "s........name" + worstQuizName);
+                }
+                else {
+                    Log.v("Leader", "Querying unsuccessful");
+                }
+            }
+        });
+
     }
 
     @Override
     public void onItemClicked(int position) {
         ListFragmentDirections.ActionListFragmentToDetailsFragment action = ListFragmentDirections.actionListFragmentToDetailsFragment();
         action.setPosition(position);
+        action.setBestQuizName(bestQuizName);
+        action.setBestQuizScore((float) bestQuizScore);
+        action.setWorstQuizName(worstQuizName);
+        action.setWorstQuizScore((float) worstQuizScore);
         navController.navigate(action);
     }
 }

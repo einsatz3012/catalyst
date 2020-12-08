@@ -28,8 +28,14 @@ import com.example.catalyst.R;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import org.w3c.dom.Text;
 
@@ -52,12 +58,26 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
     private TextView detailsDiff;
     private TextView detailsQuestions;
     private TextView detailsScore;
+    // for best and worst
+    private TextView bestQuizName;
+    private TextView bestQuizScore;
+    private TextView worstQuizName;
+    private TextView worstQuizScore;
 
     private Button detailsStartBtn;
 
     private String quizTitle;
     private String quizId;
     private long totalQuestions = 0;
+    private String bestQuizNameVal;
+    private String worstQuizNameVal;
+    private float bestQuizScoreVal;
+    private float worstQuizScoreVal;
+
+    // got from list
+
+
+
 
     public DetailsFragment() {
         // Required empty public constructor
@@ -78,6 +98,13 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
         navController = Navigation.findNavController(view);
         position = DetailsFragmentArgs.fromBundle(getArguments()).getPosition();
 
+        // initialize args
+        bestQuizNameVal = DetailsFragmentArgs.fromBundle(getArguments()).getBestQuizName();
+        worstQuizNameVal = DetailsFragmentArgs.fromBundle(getArguments()).getWorstQuizName();
+        bestQuizScoreVal =  DetailsFragmentArgs.fromBundle(getArguments()).getBestQuizScore();
+        worstQuizScoreVal =  DetailsFragmentArgs.fromBundle(getArguments()).getWorstQuizScore();
+
+
         //Initialize UI Elements
         detailsImage = view.findViewById(R.id.details_image);
         detailsTitle = view.findViewById(R.id.details_title);
@@ -86,8 +113,15 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
         detailsQuestions = view.findViewById(R.id.details_questions_text);
         detailsScore = view.findViewById(R.id.details_score_text);
 
+        // best and worst
+        bestQuizName = view.findViewById(R.id.best_quiz_name_text);
+        worstQuizName = view.findViewById(R.id.worst_quiz_name_text);
+        bestQuizScore = view.findViewById(R.id.best_quiz_score_text);
+        worstQuizScore = view.findViewById(R.id.worst_quiz_score_text);
+
         detailsStartBtn = view.findViewById(R.id.details_start_btn);
         detailsStartBtn.setOnClickListener(this);
+
 
         // Load Previous Results
         firebaseFirestore = FirebaseFirestore.getInstance();
@@ -121,8 +155,12 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
                 // Load Results Data
                 loadResultsData();
 
+                // loadBestWorstData
+                loadStatsData();
+
             }
         });
+
 
     }
 
@@ -132,9 +170,9 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
                 .document(firebaseAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                if(task.isSuccessful()){
+                if (task.isSuccessful()) {
                     DocumentSnapshot document = task.getResult();
-                    if(document != null && document.exists()){
+                    if (document != null && document.exists()) {
                         //Get Result
                         Long correct = document.getLong("Correct");
                         Long wrong = document.getLong("Wrong");
@@ -142,15 +180,23 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
 
                         //Calculate Progress
                         Long total = correct + wrong + missed;
-                        Long percent = (correct*100)/total;
+                        Long percent = (correct * 100) / total;
 
                         detailsScore.setText(percent + "%");
                     } else {
-                        //Document Doesn't Exist, and result should stay N/A
+                        //Document Doesn't Exist, and result should say N/A
                     }
                 }
             }
         });
+
+    }
+
+    public void loadStatsData() {
+        bestQuizName.setText(bestQuizNameVal);
+        bestQuizScore.setText(bestQuizScoreVal + "%");
+        worstQuizName.setText(worstQuizNameVal);
+        worstQuizScore.setText(worstQuizScoreVal + "%");
     }
 
     @Override

@@ -50,6 +50,22 @@
             android:name="position"
             app:argType="integer"
             android:defaultValue="0" />
+        <argument
+            android:name="best_quiz_name"
+            app:argType="string"
+            android:defaultValue="NA" />
+        <argument
+            android:name="best_quiz_score"
+            app:argType="float"
+            android:defaultValue="-1.0" />
+        <argument
+            android:name="worst_quiz_name"
+            app:argType="string"
+            android:defaultValue="NA" />
+        <argument
+            android:name="worst_quiz_score"
+            app:argType="float"
+            android:defaultValue="101.0" />
     </fragment>
     <fragment
         android:id="@+id/quizFragment"
