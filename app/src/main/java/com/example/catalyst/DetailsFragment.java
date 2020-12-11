@@ -193,10 +193,24 @@ public class DetailsFragment extends Fragment implements View.OnClickListener {
     }
 
     public void loadStatsData() {
-        bestQuizName.setText(bestQuizNameVal);
-        bestQuizScore.setText(bestQuizScoreVal + "%");
-        worstQuizName.setText(worstQuizNameVal);
-        worstQuizScore.setText(worstQuizScoreVal + "%");
+
+        if(bestQuizScoreVal != -1) {
+            bestQuizName.setText(bestQuizNameVal);
+            bestQuizScore.setText(bestQuizScoreVal + "%");
+        }
+        else {
+            bestQuizName.setText("NA");
+            bestQuizScore.setText("NA");
+        }
+
+        if(worstQuizScoreVal != 101) {
+            worstQuizName.setText(worstQuizNameVal);
+            worstQuizScore.setText(worstQuizScoreVal + "%");
+        }
+        else {
+            worstQuizName.setText("NA");
+            worstQuizScore.setText("NA");
+        }
     }
 
     @Override

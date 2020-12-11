@@ -1,6 +1,9 @@
 package com.example.catalyst;
 
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -14,12 +17,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.example.catalyst.ListFragmentDirections;
 import com.example.catalyst.QuizListAdapter;
@@ -34,6 +39,9 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 
 
@@ -55,12 +63,14 @@ public class ListFragment extends Fragment implements com.example.catalyst.QuizL
     private Animation fadeOutAnim;
 
     // for worst and best
+    private boolean isConnectedToInternet;
     private float fetchedTotal;
     private float fetchedAttempts;
-    private  String bestQuizName = "NA";
+    private String bestQuizName = "NA";
     private double bestQuizScore = -1;
     private String worstQuizName = "NA";
     private double worstQuizScore = 101;
+
 
     public ListFragment() {
         // Required empty public constructor
@@ -89,6 +99,7 @@ public class ListFragment extends Fragment implements com.example.catalyst.QuizL
 
         fadeInAnim = AnimationUtils.loadAnimation(getContext(), R.anim.fade_in);
         fadeOutAnim = AnimationUtils.loadAnimation(getContext(), R.anim.fade_out);
+
     }
 
     @Override
@@ -109,104 +120,131 @@ public class ListFragment extends Fragment implements com.example.catalyst.QuizL
         });
 
 
-
         //checking for leaderboard
 
-
-        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-        firebaseAuth = firebaseAuth.getInstance();
-
-        firestore.collection("QuizList").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-
-
+        // check if device is connected to internet and it is working
+        Thread thread = new Thread(new Runnable() {
 
             @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    for (QueryDocumentSnapshot documentSnapshots : task.getResult()) {
-
-//                        Log.v("tag", ":" + documentSnapshots.getId()); // gives the id of quizes
-
-                        firestore.collection("QuizList")
-                                .document(documentSnapshots.getId()).collection("Results").get()
-                                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                        if (task.isSuccessful()) {
-                                            boolean isResultsExist = task.getResult().isEmpty();
-
-                                            if (!isResultsExist) {
-
-                                                Log.v("leader", "Resul collection exists: " + documentSnapshots.get("name"));
-
-                                                firestore.collection("QuizList")
-                                                        .document(documentSnapshots.getId()).collection("Results")
-                                                        .document(firebaseAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                                    @Override
-                                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-
-                                                        DocumentSnapshot result = task.getResult();
-
-                                                        if (task.isSuccessful()) {
-                                                            boolean isUidExits = task.getResult().exists();
-
-                                                            if (isUidExits) {
-                                                                Log.v("leader", "uid document exists: " + documentSnapshots.get("name"));
-
-                                                                fetchedTotal = (float) result.getLong("totalScore");
-                                                                fetchedAttempts = (float) result.getLong("attempts");
-
-                                                                float average = fetchedTotal / fetchedAttempts;
-                                                                double roundOff = Math.round(average * 100.0) / 100.0;
-                                                                Log.v("leader", "fetched avg" + roundOff + "%");
-                                                                Log.v("leader", ": " + (roundOff > bestQuizScore) + 's');
-
-                                                                if(roundOff > bestQuizScore) {
-                                                                    Log.v("leader", "greater if");
-                                                                    bestQuizScore = roundOff;
-                                                                    bestQuizName = documentSnapshots.get("name").toString();
-
-                                                                    Log.v("results", "best score: " + bestQuizScore + "s........name" + bestQuizName);
-                                                                    Log.v("results", "worst score: " + worstQuizScore + "s........name" + worstQuizName);
-                                                                }
-                                                                if(roundOff < worstQuizScore) {
-                                                                    Log.v("leader", "smaller if");
-                                                                    worstQuizScore = roundOff;
-                                                                    worstQuizName = documentSnapshots.get("name").toString();
-
-                                                                    Log.v("results", "best score: " + bestQuizScore + "s........name" + bestQuizName);
-                                                                    Log.v("results", "worst score: " + worstQuizScore + "s........name" + worstQuizName);
-                                                                }
-
-
-                                                            } else {
-                                                                Log.v("leader", "uid doc doesn't exists: " + documentSnapshots.get("name"));
-                                                            }
-
-                                                        } else {
-                                                            Log.v("leader", "Task UID Unsucessfull ");
-                                                        }
-
-                                                    }
-                                                });
-                                            } else {
-                                                Log.v("leader", "Resul collection doesn't exists: " + documentSnapshots.get("name"));
-                                            }
-                                        } else {
-                                            Log.v("leader", "Task Unsuccessful");
-                                        }
-                                    }
-                                });
-
-                    }
-                    Log.v("results", "best outer score: " + bestQuizScore + "s........name" + bestQuizName);
-                    Log.v("results", "worst outer score: " + worstQuizScore + "s........name" + worstQuizName);
-                }
-                else {
-                    Log.v("Leader", "Querying unsuccessful");
+            public void run() {
+                try {
+                    isConnectedToInternet = isInternetWorking();
+                    Log.v("internet_log", ": " + isConnectedToInternet);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         });
+
+        thread.start();
+
+        if (isConnectedToInternet) {
+
+            FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+            firebaseAuth = firebaseAuth.getInstance();
+
+            firestore.collection("QuizList").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+
+                @Override
+                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot documentSnapshots : task.getResult()) {
+
+//                        Log.v("tag", ":" + documentSnapshots.getId()); // gives the id of quizes
+
+                            firestore.collection("QuizList")
+                                    .document(documentSnapshots.getId()).collection("Results").get()
+                                    .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                            if (task.isSuccessful()) {
+                                                boolean isResultsExist = task.getResult().isEmpty();
+
+                                                if (!isResultsExist) {
+
+                                                    Log.v("leader", "Result collection exists: " + documentSnapshots.get("name"));
+
+                                                    firestore.collection("QuizList")
+                                                            .document(documentSnapshots.getId()).collection("Results")
+                                                            .document(firebaseAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+
+                                                            DocumentSnapshot result = task.getResult();
+
+                                                            if (task.isSuccessful()) {
+                                                                boolean isUidExits = task.getResult().exists();
+
+                                                                if (isUidExits) {
+                                                                    Log.v("leader", "uid document exists: " + documentSnapshots.get("name"));
+
+                                                                    fetchedTotal = (float) result.getLong("totalScore");
+                                                                    fetchedAttempts = (float) result.getLong("attempts");
+
+                                                                    float average = fetchedTotal / fetchedAttempts;
+                                                                    double roundOff = Math.round(average * 100.0) / 100.0;
+                                                                    Log.v("leader", "fetched avg" + roundOff + "%");
+
+                                                                    if (roundOff > bestQuizScore) {
+                                                                        bestQuizScore = roundOff;
+                                                                        bestQuizName = documentSnapshots.get("name").toString();
+
+                                                                        Log.v("results", "best score: " + bestQuizScore + "s........name" + bestQuizName);
+                                                                        Log.v("results", "worst score: " + worstQuizScore + "s........name" + worstQuizName);
+                                                                    }
+                                                                    if (roundOff < worstQuizScore) {
+                                                                        worstQuizScore = roundOff;
+                                                                        worstQuizName = documentSnapshots.get("name").toString();
+
+                                                                        Log.v("results", "best score: " + bestQuizScore + "s........name" + bestQuizName);
+                                                                        Log.v("results", "worst score: " + worstQuizScore + "s........name" + worstQuizName);
+                                                                    }
+
+
+                                                                } else {
+                                                                    Log.v("leader", "uid doc doesn't exists: " + documentSnapshots.get("name"));
+                                                                }
+
+                                                            } else {
+                                                                Log.v("leader", "Task UID Unsuccessful ");
+                                                            }
+
+                                                        }
+                                                    });
+                                                } else {
+                                                    Log.v("leader", "Result collection doesn't exists: " + documentSnapshots.get("name"));
+                                                }
+                                            } else {
+                                                Log.v("leader", "Task Unsuccessful");
+                                            }
+                                        }
+                                    });
+
+                        }
+                        Log.v("results", "best outer score: " + bestQuizScore + "s........name" + bestQuizName);
+                        Log.v("results", "worst outer score: " + worstQuizScore + "s........name" + worstQuizName);
+                    } else {
+                        Log.v("Leader", "Querying unsuccessful");
+                    }
+                }
+
+            });
+            
+        }
+    }
+
+    private boolean isInternetWorking() {
+        boolean success = false;
+        try {
+            URL url = new URL("https://google.com");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(10000);
+            connection.connect();
+            success = connection.getResponseCode() == 200;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return success;
 
     }
 
