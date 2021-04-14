@@ -246,7 +246,7 @@ public class QuizFragment extends Fragment implements View.OnClickListener {
             int randomNumber = getRandomInt(0, allQuestionsList.size());
             questionsToAnswer.add(allQuestionsList.get(randomNumber));
             allQuestionsList.remove(randomNumber);
-            Log.d("QUESTIONS LOG", "Question " + i + " : " + questionsToAnswer.get(i).getQuestion());
+            Log.d("LOG", "Question " + i + " : " + questionsToAnswer.get(i).getQuestion());
         }
     }
 

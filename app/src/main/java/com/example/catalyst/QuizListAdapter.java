@@ -1,5 +1,6 @@
 package com.example.catalyst;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,6 +32,7 @@ public class QuizListAdapter extends RecyclerView.Adapter<QuizListAdapter.QuizVi
     @NonNull
     @Override
     public QuizViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        Log.v("parentadapter", parent.getId() + "p");
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.single_list_item, parent, false);
         return new QuizViewHolder(view);
     }
